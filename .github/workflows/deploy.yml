@@ -1,0 +1,65 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: setup
+        uses: $/.github/actions/setup
+
+      # This job runs on fork PRs, so the lockfile it installs from is the PR's.
+      # A dependency postinstall would execute on the runner before anyone has
+      # read the diff. The build does not need one: esbuild resolves its binary
+      # from the platform package through its JS API, and sharp goes unused
+      # because next.config.mjs sets images.unoptimized.
+      - name: install
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: lint
+        run: pnpm --filter @studio/web lint
+
+      - name: build
+        env:
+          NODE_ENV: production
+        run: pnpm build
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ./apps/web/out
+
+  deploy:
+    needs: verify
+    # Only master publishes; a manual run on any other branch only builds.
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request' && github.repository == 'thisonedev/slaps-studio'
+    runs-on: ubuntu-latest
+    # Write access only here, since the verify job runs PR code.
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

@@ -1,0 +1,34 @@
+{
+  "name": "slaps-studio",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "build:packages": "pnpm -r --filter \"./packages/*\" build",
+    "dev": "pnpm --parallel --filter @studio/ui --filter @studio/web dev",
+    "dev:webpack": "pnpm --filter @studio/web dev:webpack",
+    "build": "pnpm build:packages && pnpm --filter @studio/web build",
+    "start": "pnpm --filter @studio/web start",
+    "start:web": "pnpm --filter @studio/web start",
+    "lint": "pnpm --filter @studio/web lint",
+    "check": "pnpm --filter @studio/web check",
+    "check:write": "pnpm --filter @studio/web check:write",
+    "format": "pnpm --filter @studio/web format",
+    "check:constants": "pnpm --filter @studio/constants test",
+    "check:colors": "node packages/ui/scripts/check-colors.mjs",
+    "notice": "node scripts/notice.mjs",
+    "notice:check": "node scripts/notice.mjs --check",
+    "release": "node scripts/release.mjs",
+    "dev:desktop": "pnpm --filter @studio/desktop dev",
+    "start:desktop": "pnpm --filter @studio/desktop start",
+    "cli": "node apps/cli/bin/slaps-studio.js"
+  },
+  "devDependencies": {
+    "yaml": "2.9.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+'use strict';
+
+// The channel a model loader reports through, so the page can show
+// "Downloading/Loading the X model (name)".
+
+const { EventEmitter } = require('node:events');
+
+const events = new EventEmitter();
+events.setMaxListeners(50);
+
+// Last non-'ready' status, so a page that (re)mounts mid-load (the header
+// badge on every navigation) can catch up instead of waiting for the next tick.
+let current = null;
+
+/** `cancelled` on a "ready" means the load was stopped, not finished.
+ *  @param {{ name: string, kind: string, phase: 'downloading'|'loading'|'ready', downloaded?: number, total?: number, cancelled?: boolean }} status */
+function notify(status) {
+  current = status.phase === 'ready' ? null : status;
+  events.emit('status', status);
+}
+
+function onStatus(callback) {
+  events.on('status', callback);
+  return () => events.off('status', callback);
+}
+
+function currentStatus() {
+  return current;
+}
+
+module.exports = { notify, onStatus, currentStatus };

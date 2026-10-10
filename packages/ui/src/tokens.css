@@ -1,0 +1,91 @@
+/* The app's colors, named by what they mean. Components use these names (text-danger,
+   bg-primary/10), never a palette step or a hex. The web app imports this file. */
+@theme {
+  /* Type scale for the app's dense UI, named by role. No line height of its own, so the
+     text keeps its container's. Tailwind's text-xs and text-sm stay for prose. */
+  --text-micro: 10px;
+  --text-caption: 11px;
+  --text-label: 12px;
+  --text-body: 13px;
+  --text-lead: 14px;
+  --text-title: 20px;
+  --text-display: 28px;
+
+  /* "Creamy sage": a soft, desaturated green, the one accent of the app. */
+  --color-primary: #8fbf8a;
+  --color-primary-soft: #a5cca1;
+  --color-primary-strong: #6fa372;
+  /* Text on a filled primary button. */
+  --color-primary-foreground: oklch(26.2% 0.051 172.552);
+
+  --color-danger: oklch(80.8% 0.114 19.571);
+  --color-danger-strong: oklch(63.7% 0.237 25.331);
+  --color-warning: oklch(82.8% 0.189 84.429);
+  --color-warning-strong: oklch(76.9% 0.188 70.08);
+  --color-info: oklch(74.6% 0.16 232.661);
+  --color-info-strong: oklch(68.5% 0.169 237.323);
+  /* A picked node on the flow canvas. */
+  --color-selected: oklch(74% 0.238 322.16);
+  --color-support: oklch(83.3% 0.145 321.434);
+
+  /* Dark main canvas, the whole app lives on this. Cool neutral with no green or warm tint:
+     a tinted gray read as "faded green" next to the accent. */
+  --color-canvas: #12151a;
+  --color-canvas-foreground: #eef1f0;
+  --color-canvas-muted: #171b21;
+  --color-canvas-muted-foreground: #94a0ad;
+  --color-canvas-dimmer: #5c6672;
+  --color-canvas-border: #242b33;
+  /* The heavy rule between sections of the studio's side panels. */
+  --color-canvas-divider: #0c0e12;
+  /* Third surface tier for the terminal and video window chrome, which sits inside a
+     canvas-muted bezel and needs its own lighter layer to read as a screen. */
+  --color-canvas-raised: #181d24;
+  /* A filled field or block in the design studio's right panel, one step up from the canvas. */
+  --color-canvas-field: #1f252d;
+
+  /* The backdrop of a saved design's thumbnail. */
+  --color-thumb: #121212;
+
+  /* The tints of the studio's rail items. */
+  --color-node-trigger: oklch(80.8% 0.114 19.571);
+  --color-node-data: oklch(83.7% 0.128 66.29);
+  --color-node-logic: oklch(87.9% 0.169 91.605);
+  --color-node-voice: oklch(80.9% 0.105 251.813);
+
+  /* A changelog item's kind in the studio inspector. */
+  --color-tag-new: oklch(82.8% 0.111 230.318);
+  --color-tag-improved: oklch(85.5% 0.138 181.071);
+  --color-tag-fixed: oklch(81% 0.117 11.638);
+
+  /* An unpicked piece on the motion timeline. */
+  --color-track: oklch(55.4% 0.046 257.417);
+
+  --color-window-close: oklch(63.7% 0.237 25.331);
+  --color-window-minimize: oklch(79.5% 0.184 86.047);
+  --color-window-maximize: oklch(72.3% 0.219 149.579);
+
+  /* A light page: the export preview and the chart data sheet. */
+  --color-paper: #ffffff;
+  --color-paper-subtle: oklch(98.5% 0 none);
+  --color-paper-muted: oklch(97% 0 none);
+  --color-paper-border: oklch(87% 0 none);
+  --color-paper-dimmer: oklch(70.8% 0 none);
+  --color-paper-muted-foreground: oklch(55.6% 0 none);
+  --color-paper-foreground: oklch(20.5% 0 none);
+  --color-paper-focus: oklch(97.9% 0.021 166.113);
+
+  /* A dark page: the export preview's dark mode. */
+  --color-page: #0d1117;
+}
+
+/* App-wide layers, lowest first. A z-10 or z-20 that only orders things inside one
+   component stays a plain number. */
+@utility z-sticky { z-index: 40; }
+@utility z-modal { z-index: 50; }
+@utility z-modal-raised { z-index: 55; }
+@utility z-modal-nested { z-index: 60; }
+@utility z-toast { z-index: 70; }
+@utility z-popover { z-index: 80; }
+@utility z-dialog { z-index: 90; }
+@utility z-tooltip { z-index: 100; }

@@ -1,0 +1,304 @@
+'use client';
+
+import type { StudioAPI, StudioIdentityStatus } from '@studio/validation';
+import { useUserStore } from '@studio/core';
+import { Check, KeyRound, Loader2, Shield } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { ProfileUsernameSection } from './profile-username.js';
+import { Card } from '../ui/card.js';
+import { SectionLabel } from '../ui/section-label.js';
+import '../../lib/desktop.js';
+import { fieldClass } from '../ui/field.js';
+
+type Step = 'choose' | 'backup' | 'recover' | 'done';
+
+/** Profile setup for Settings: create, recover, or view/remove the local identity. Multi-device link and Keet app interop are deferred. */
+export function ProfileOnboarding({ onReady }: { onReady?: () => void }) {
+  const resetUser = useUserStore((s) => s.reset);
+  const [status, setStatus] = useState<StudioIdentityStatus | null>(null);
+  const [step, setStep] = useState<Step>('choose');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [mnemonic, setMnemonic] = useState<string | null>(null);
+  const [backupChecked, setBackupChecked] = useState(false);
+  const [recoverText, setRecoverText] = useState('');
+  const refresh = useCallback(async () => {
+    if (!window.studio?.identity) return null;
+    const s = await window.studio.identity.status();
+    setStatus(s);
+    if (s.ready) {
+      setStep('done');
+      onReady?.();
+    } else if (s.status !== 'pending-backup') {
+      // No mnemonic to resume after a restart; fall back to choose.
+      setStep('choose');
+    }
+    return s;
+  }, [onReady]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  const hasApi =
+    typeof window !== 'undefined' && typeof window.studio?.identity?.status === 'function';
+  if (!hasApi) {
+    return (
+      <Card>
+        <p className="text-sm text-canvas-muted-foreground">
+          Profile setup is available in the desktop app.
+        </p>
+      </Card>
+    );
+  }
+
+  if (status?.ready && step === 'done') {
+    return (
+      <div className="space-y-5">
+        <Card>
+          <SectionLabel>
+            Profile
+          </SectionLabel>
+          <p className="mt-1 text-sm text-canvas-foreground">Slaps Studio profile ready</p>
+          <p className="mt-3 text-xs text-canvas-muted-foreground">
+            {status.holdsRoot
+              ? 'This device holds your recovery phrase. Keep it safe and don`t share with anyone.'
+              : 'This device is set up under a root identity.'}
+          </p>
+
+          <div className="mt-6 border-t border-canvas-border pt-4">
+            <SectionLabel>
+              Remove from this device
+            </SectionLabel>
+            <p className="mt-1 text-xs text-canvas-muted-foreground">
+              Deletes the sealed keys on this machine only. You will need your recovery
+              phrase to set up again.
+            </p>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                if (
+                  !window.confirm(
+                    'Remove your profile from this device? You will need your recovery phrase to sign in again.',
+                  )
+                ) {
+                  return;
+                }
+                setBusy(true);
+                setError(null);
+                void window.studio!.identity!.reset()
+                  .then(() => {
+                    // Profile keys are gone; sign out too.
+                    resetUser();
+                    setStep('choose');
+                    return refresh();
+                  })
+                  .catch((err) => {
+                    setError(err instanceof Error ? err.message : String(err));
+                  })
+                  .finally(() => setBusy(false));
+              }}
+              className="mt-2 rounded border border-danger/40 px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/10 disabled:opacity-50"
+            >
+              Remove your profile
+            </button>
+          </div>
+          {error ? (
+            <p className="mt-3 text-xs text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
+        </Card>
+        <ProfileUsernameSection />
+      </div>
+    );
+  }
+
+  async function onCreate() {
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await window.studio!.identity!.create();
+      setMnemonic(result.mnemonic);
+      setBackupChecked(false);
+      setStep('backup');
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onConfirmBackup() {
+    if (!backupChecked) {
+      setError('Confirm you saved the recovery phrase before continuing.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await window.studio!.identity!.confirmBackup();
+      setMnemonic(null);
+      setStep('done');
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onRecover() {
+    setBusy(true);
+    setError(null);
+    try {
+      await window.studio!.identity!.recover(recoverText);
+      setStep('done');
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <SectionLabel>
+        Profile setup
+      </SectionLabel>
+      <p className="mt-1 text-sm text-canvas-muted-foreground">
+        Create a new profile or restore one with your recovery phrase.
+      </p>
+
+      {error ? (
+        <p className="mt-3 rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger">
+          {error}
+        </p>
+      ) : null}
+
+      {step === 'choose' ? (
+        <div className="mt-4 grid gap-3 sm:grid-cols-1">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => void onCreate()}
+            className="flex items-start gap-3 rounded-lg border border-canvas-border bg-canvas-muted px-4 py-3 text-left transition-colors hover:border-primary/40 disabled:opacity-50"
+          >
+            <KeyRound className="mt-0.5 size-4 shrink-0 text-primary" />
+            <span>
+              <span className="block text-sm font-semibold text-canvas-foreground">
+                Create a new profile
+              </span>
+              <span className="mt-0.5 block text-xs text-canvas-muted-foreground">
+                Recommended. New recovery phrase for this app only.
+              </span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setStep('recover')}
+            className="flex items-start gap-3 rounded-lg border border-canvas-border bg-canvas-muted px-4 py-3 text-left transition-colors hover:border-primary/40 disabled:opacity-50"
+          >
+            <Shield className="mt-0.5 size-4 shrink-0 text-canvas-muted-foreground" />
+            <span>
+              <span className="block text-sm font-semibold text-canvas-foreground">
+                Recover with a phrase
+              </span>
+              <span className="mt-0.5 block text-xs text-canvas-muted-foreground">
+                Enter the recovery phrase from a previous install.
+              </span>
+            </span>
+          </button>
+        </div>
+      ) : null}
+
+      {step === 'backup' && mnemonic ? (
+        <div className="mt-4 space-y-3">
+          <p className="text-sm text-canvas-foreground">
+            Write down this recovery phrase. It is shown once and is the only way to recover this
+            identity.
+          </p>
+          <pre className="whitespace-pre-wrap rounded-lg border border-warning-strong/30 bg-warning-strong/5 px-3 py-3 font-mono text-xs leading-relaxed text-canvas-foreground">
+            {mnemonic}
+          </pre>
+          <label className="flex items-start gap-2 text-xs text-canvas-muted-foreground">
+            <input
+              type="checkbox"
+              checked={backupChecked}
+              onChange={(e) => setBackupChecked(e.target.checked)}
+              className="mt-0.5"
+            />
+            I have saved this phrase offline. I understand it will not be shown again.
+          </label>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setBackupChecked(false);
+                setStep('choose');
+                void refresh();
+              }}
+              className="rounded-md px-3 py-1.5 text-sm text-canvas-muted-foreground hover:text-canvas-foreground"
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              disabled={busy || !backupChecked}
+              onClick={() => void onConfirmBackup()}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-canvas disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+              Continue
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {step === 'recover' ? (
+        <div className="mt-4 space-y-3">
+          <p className="text-sm text-canvas-muted-foreground">
+            Enter your Slaps Studio recovery phrase.
+          </p>
+          <textarea
+            value={recoverText}
+            onChange={(e) => setRecoverText(e.target.value)}
+            rows={3}
+            spellCheck={false}
+            className={fieldClass('lg')}
+            placeholder="word1 word2 …"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              disabled={busy || !recoverText.trim()}
+              onClick={() => void onRecover()}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-canvas disabled:opacity-50"
+            >
+              {busy ? <Loader2 className="size-3.5 animate-spin" /> : null}
+              Recover
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep('choose')}
+              className="text-xs text-canvas-muted-foreground hover:text-canvas-foreground"
+            >
+              Back
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {busy && step === 'choose' ? (
+        <p className="mt-3 flex items-center gap-2 text-xs text-canvas-muted-foreground">
+          <Loader2 className="size-3 animate-spin" /> Working…
+        </p>
+      ) : null}
+    </Card>
+  );
+}

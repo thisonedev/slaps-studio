@@ -1,0 +1,16 @@
+{
+  "name": "@studio/cli",
+  "version": "0.1.0",
+  "private": true,
+  "description": "slaps-studio CLI: install, update, and start the desktop app.",
+  "bin": {
+    "slaps-studio": "./bin/slaps-studio.js"
+  },
+  "scripts": {
+    "start": "node bin/slaps-studio.js"
+  },
+  "dependencies": {
+    "electron": "^40.2.1",
+    "paparam": "^1.10.0"
+  }
+}

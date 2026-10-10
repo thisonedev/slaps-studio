@@ -1,0 +1,41 @@
+// One row per ipcMain.handle() channel main.js registers, mapped to the
+// @studio/validation schema its payload parses against (or null when none).
+// A channel not listed here throws at startup.
+'use strict';
+
+module.exports = Object.freeze({
+  pkg: null,
+  'studio:state:get': 'stateKeySchema',
+  'studio:state:set': 'stateSetSchema',
+  'studio:state:remove': 'stateKeySchema',
+  'studio:state:list': null,
+  'studio:catalog:save': 'catalogSaveSchema',
+  'studio:catalog:rename': 'catalogRenameSchema',
+  'studio:catalog:get': 'catalogKeySchema',
+  'studio:catalog:remove': 'catalogKeySchema',
+  'studio:catalog:list': 'catalogListSchema',
+  'studio:catalog:disk-status': null,
+  'studio:sound:read': 'soundNameSchema',
+  'studio:window:minimize': null,
+  'studio:window:maximize': null,
+  'studio:window:close': null,
+  'studio:clipboard:copy': 'clipboardCopySchema',
+  'studio:models:list': null,
+  'studio:models:remove': 'modelIdSchema',
+  'studio:models:catalogue': null,
+  'studio:models:downloadQueue': 'modelDownloadQueueSchema',
+  'studio:models:cancelDownloadQueue': null,
+  'studio:models:downloadQueueState': null,
+  'studio:model:status:current': null,
+  'studio:model:cancel-load': null,
+  'studio:generate-image': 'studioGenerateImageSchema',
+  'studio:generate-image:cancel': null,
+  'studio:device:info': null,
+  'studio:identity:status': null,
+  'studio:identity:create': null,
+  'studio:identity:confirm-backup': null,
+  'studio:identity:recover': 'identityMnemonicSchema',
+  'studio:identity:reset': null,
+  'studio:identity:set-username': 'identityUsernameSchema',
+  'studio:identity:get-username': null,
+});

@@ -1,0 +1,33 @@
+{
+  "name": "@studio/desktop",
+  "productName": "Slaps Studio",
+  "version": "0.1.0",
+  "description": "Slaps Studio desktop shell (Electron).",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "node scripts/kill-stale.mjs --launch .",
+    "dev": "node scripts/kill-stale.mjs --launch . --dev",
+    "test": "pnpm test:unit",
+    "test:unit": "pnpm typecheck && node scripts/run-tests.mjs tests/unit",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@studio/constants": "workspace:*",
+    "@studio/validation": "workspace:*",
+    "@qvac/sdk": "^0.20.1",
+    "b4a": "^1.8.1",
+    "corestore": "^7.11.1",
+    "hypercore": "^11.35.0",
+    "hypercore-crypto": "^3.7.0",
+    "keet-identity-key": "^3.2.0",
+    "paparam": "^1.10.0",
+    "which-runtime": "^1.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "brittle": "^4.1.0",
+    "electron": "^40.2.1",
+    "typescript": "^5.7.0"
+  }
+}

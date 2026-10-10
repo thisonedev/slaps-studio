@@ -1,0 +1,32 @@
+{
+  "name": "@studio/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./storage-keys": {
+      "types": "./dist/store/storage-keys.d.ts",
+      "default": "./dist/store/storage-keys.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@studio/config": "workspace:*",
+    "@studio/validation": "workspace:*",
+    "react": "^19.0.0",
+    "zustand": "^5.0.14"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,44 @@
+#!/bin/sh
+# Bootstraps `slaps-studio` on a machine with nothing installed yet.
+#
+#   curl -fsSL https://slapsstudio.cc/install.sh | sh
+#
+# Only job: get Node running against a checkout so apps/cli/src/install.js
+# (the actual install logic) can take over from there.
+set -eu
+
+REPO_URL="https://github.com/thisonedev/slaps-studio.git"
+BRANCH="master"
+# Repo and branch overrides are for testing unmerged work, so they need P2P_STUDIO_DEV=1.
+if [ "${P2P_STUDIO_DEV:-}" = "1" ]; then
+  REPO_URL="${P2P_STUDIO_REPO:-$REPO_URL}"
+  BRANCH="${P2P_STUDIO_BRANCH:-$BRANCH}"
+fi
+
+need() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "slaps-studio install requires $1 ($2)" >&2
+    exit 1
+  fi
+}
+
+need git "https://git-scm.com"
+need node "https://nodejs.org"
+
+# npm ships with node, so this one prerequisite is safe to self-heal;
+# git/node stay hard requirements rather than something this script installs.
+if ! command -v pnpm >/dev/null 2>&1; then
+  echo "-> Installing pnpm..."
+  npm install -g pnpm@9.15.9
+fi
+
+tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/slaps-studio-bootstrap.XXXXXX")
+cleanup() { rm -rf "$tmp_dir"; }
+trap cleanup EXIT INT TERM
+
+echo "-> Fetching installer from $REPO_URL ($BRANCH)..."
+git clone --quiet --depth 1 --branch "$BRANCH" "$REPO_URL" "$tmp_dir"
+
+# bootstrap-install.js skips cli.js/paparam (see that file for why).
+# Not `exec`: the EXIT trap must still fire to clean up $tmp_dir.
+node "$tmp_dir/apps/cli/bin/bootstrap-install.js"

@@ -1,0 +1,34 @@
+# dependencies
+node_modules/
+temp
+db
+
+# next.js
+.next/
+.next-dev/
+out/
+next-env.d.ts
+dist
+
+# misc
+.DS_Store
+*.pem
+.env
+.env*.local
+.hermes
+.claude
+
+# copied from apps/cli/install.sh by apps/web/scripts/copy-install-sh.mjs
+apps/web/public/install.sh
+
+# build logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# typescript
+*.tsbuildinfo
+
+# biome
+.cache/
+

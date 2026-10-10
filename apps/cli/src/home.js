@@ -1,0 +1,115 @@
+'use strict';
+
+// ~/.slaps-studio (same shape as Hermes' ~/.hermes):
+//   versions/<sha>/       full checkout + build for one commit
+//   current                symlink -> versions/<sha>, the active version
+//   backups/<ts>/          pre-update snapshots of the app's userData dir
+//   .update-in-progress    update lock (pid + started-at)
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+
+function home() {
+  const override = process.env.P2P_STUDIO_HOME;
+  return override && override.trim() ? path.resolve(override) : path.join(os.homedir(), '.slaps-studio');
+}
+
+function versionsDir() {
+  return path.join(home(), 'versions');
+}
+
+// Short, not full 40-char sha: pnpm's .pnpm store already nests peer-dep-hashed
+// directory names deep enough that the full sha here pushes real file paths
+// (e.g. bare-runtime's platform binary) past Windows' 260-char MAX_PATH.
+function versionDir(sha) {
+  return path.join(versionsDir(), sha.slice(0, 12));
+}
+
+// Windows-only. Left at the default (nested under versions/<sha>/node_modules/.pnpm/)
+// pnpm's own hashed store directory names are long enough that combined with
+// that prefix, native addon paths (sodium-native, bare-runtime) blow past
+// Windows' 260-char MAX_PATH ("The filename or extension is too long").
+function pnpmVirtualStoreDir() {
+  return path.join(os.homedir(), '.pnpm-store');
+}
+
+function currentLink() {
+  return path.join(home(), 'current');
+}
+
+function backupsDir() {
+  return path.join(home(), 'backups');
+}
+
+function lockPath() {
+  return path.join(home(), '.update-in-progress');
+}
+
+// Real symlinks need admin or dev mode on Windows; junctions need neither
+// and fs.symlinkSync's 'junction' type has covered them since Node 6.
+function linkType() {
+  return process.platform === 'win32' ? 'junction' : 'dir';
+}
+
+// POSIX gets a bash shim on PATH already searched by convention (~/.local/bin).
+// Windows has no such convention, so this uses its own per-app bin dir instead.
+function shimDir() {
+  return process.platform === 'win32'
+    ? path.join(os.homedir(), 'AppData', 'Local', 'slaps-studio', 'bin')
+    : path.join(os.homedir(), '.local', 'bin');
+}
+
+function shimPath() {
+  return path.join(shimDir(), process.platform === 'win32' ? 'slaps-studio.cmd' : 'slaps-studio');
+}
+
+// The repo and branch overrides pick the code `install`/`update` build and run,
+// so a stray env var must not change them: they apply only with P2P_STUDIO_DEV=1.
+function devOverride(name) {
+  if (process.env.P2P_STUDIO_DEV !== '1') return null;
+  const value = process.env[name];
+  return value && value.trim() ? value : null;
+}
+
+function repoUrl() {
+  // HTTPS, not SSH: this is what a fresh machine with no deploy key clones
+  // (the repo is public), which is the common case for `install`/`update`.
+  return devOverride('P2P_STUDIO_REPO') ?? 'https://github.com/thisonedev/slaps-studio.git';
+}
+
+// Overrides the ref `install`/`update` build, ahead of the channel. Combine
+// with P2P_STUDIO_REPO=<local path> to test a not-yet-merged branch.
+function devBranch() {
+  return devOverride('P2P_STUDIO_BRANCH');
+}
+
+// Swaps `tmpLink` into place as `current`. Windows' MoveFileEx can't replace
+// an existing directory/junction, so shuffle it aside there instead.
+function swapCurrentLink(tmpLink) {
+  const target = currentLink();
+  if (process.platform !== 'win32') {
+    fs.renameSync(tmpLink, target);
+    return;
+  }
+  const old = `${target}.old-${process.pid}`;
+  const hadPrevious = fs.existsSync(target);
+  if (hadPrevious) fs.renameSync(target, old);
+  fs.renameSync(tmpLink, target);
+  if (hadPrevious) fs.rmdirSync(old);
+}
+
+module.exports = {
+  home,
+  versionsDir,
+  versionDir,
+  pnpmVirtualStoreDir,
+  currentLink,
+  backupsDir,
+  lockPath,
+  repoUrl,
+  devBranch,
+  linkType,
+  shimDir,
+  shimPath,
+  swapCurrentLink,
+};

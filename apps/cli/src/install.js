@@ -1,0 +1,93 @@
+'use strict';
+
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { run, runQuiet, ensureCommand } = require('./proc');
+const {
+  home,
+  versionsDir,
+  versionDir,
+  pnpmVirtualStoreDir,
+  currentLink,
+  repoUrl,
+  linkType,
+  shimDir,
+  shimPath: shimFilePath,
+  swapCurrentLink,
+} = require('./home');
+const { selectChannel, refFor } = require('./channel');
+
+// See pnpmVirtualStoreDir(): keeps pnpm's hashed store names off the long
+// versions/<sha>/ prefix so native addon paths stay under Windows' MAX_PATH.
+function writeWindowsNpmrc(dir) {
+  if (process.platform !== 'win32') return;
+  const storeDir = pnpmVirtualStoreDir().split(path.sep).join('/');
+  fs.writeFileSync(path.join(dir, '.npmrc'), `virtual-store-dir=${storeDir}\n`, { flag: 'a' });
+}
+
+function writeShim(targetEntry) {
+  const binDir = shimDir();
+  const shimPath = shimFilePath();
+  fs.mkdirSync(binDir, { recursive: true });
+  if (process.platform === 'win32') {
+    // %~dp0-relative would break once versions/<sha> gets pruned by an
+    // update; targetEntry is already the live `current` symlink/junction.
+    // cmd.exe reads .cmd files in the OEM code page, so a non-ASCII profile
+    // path (e.g. Cyrillic) gets mangled; %USERPROFILE% expands at run time.
+    const homeDir = os.homedir();
+    const entry = targetEntry.startsWith(homeDir + path.sep)
+      ? `%USERPROFILE%${targetEntry.slice(homeDir.length)}`
+      : targetEntry;
+    fs.writeFileSync(shimPath, `@node "${entry}" %*\r\n`);
+  } else {
+    fs.writeFileSync(shimPath, `#!/usr/bin/env bash\nexec node "${targetEntry}" "$@"\n`, { mode: 0o755 });
+  }
+  return { shimPath, onPath: (process.env.PATH || '').split(path.delimiter).includes(binDir) };
+}
+
+async function install({ channel: channelFlag } = {}) {
+  ensureCommand('git', 'https://git-scm.com');
+  ensureCommand('node', 'https://nodejs.org');
+  const channel = selectChannel(channelFlag);
+
+  console.log('Installing Slaps Studio...');
+  fs.mkdirSync(versionsDir(), { recursive: true });
+  const tmpDir = path.join(versionsDir(), `.tmp-${process.pid}-${Date.now()}`);
+
+  const ref = refFor(channel);
+  console.log(`-> Cloning ${repoUrl()} (${channel}: ${ref})...`);
+  run('git', ['clone', '--depth', '1', '--branch', ref, repoUrl(), tmpDir], { quiet: true });
+
+  const sha = run('git', ['-C', tmpDir, 'rev-parse', 'HEAD'], { quiet: true }).stdout.trim();
+  const finalDir = versionDir(sha);
+  if (fs.existsSync(finalDir)) fs.rmSync(tmpDir, { recursive: true, force: true });
+  else fs.renameSync(tmpDir, finalDir);
+
+  writeWindowsNpmrc(finalDir);
+
+  console.log('-> Installing dependencies...');
+  await runQuiet('pnpm', ['install', '--frozen-lockfile'], { cwd: finalDir });
+  console.log('-> Building (this can take a minute or two)...');
+  await runQuiet('pnpm', ['build'], { cwd: finalDir });
+
+  const tmpLink = `${currentLink()}.tmp-${process.pid}`;
+  fs.symlinkSync(finalDir, tmpLink, linkType());
+  swapCurrentLink(tmpLink);
+
+  const entry = path.join(currentLink(), 'apps', 'cli', 'bin', 'slaps-studio.js');
+  const { shimPath, onPath } = writeShim(entry);
+
+  console.log(`\nslaps-studio installed at ${home()} (version ${sha.slice(0, 12)})`);
+  console.log(`Shim written to ${shimPath}`);
+  if (!onPath) {
+    console.log(
+      process.platform === 'win32'
+        ? `Add it to your PATH: setx PATH "%PATH%;${shimDir()}"`
+        : `Add it to your PATH: export PATH="$HOME/.local/bin:$PATH"`,
+    );
+  }
+  console.log('Run `slaps-studio start` to launch the app.');
+}
+
+module.exports = { install };
