@@ -7,7 +7,12 @@ declare global {
   }
 }
 
-/** True in the desktop app, false in a browser and while rendering on the server. */
+/**
+ * True in the desktop app, false in a browser and while rendering on the server.
+ * An element with id="studio" also shows up as window.studio, so DOM nodes don't count.
+ */
 export function isDesktopApp(): boolean {
-  return typeof window !== 'undefined' && !!window.studio;
+  if (typeof window === 'undefined') return false;
+  const bridge: unknown = window.studio;
+  return !!bridge && !(bridge instanceof Element);
 }

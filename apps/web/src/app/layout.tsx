@@ -22,7 +22,7 @@ export const metadata = {
 
 /** Tag <html data-platform="desktop"> before paint when the desktop bridge is
  *  present, so CSS can pick the right header layout (controls + logo offset). */
-const tagPlatformScript = `try{if(window.studio){document.documentElement.setAttribute('data-platform','desktop')}}catch(e){}`;
+const tagPlatformScript = `try{if(window.studio&&!(window.studio instanceof Element)){document.documentElement.setAttribute('data-platform','desktop')}}catch(e){}`;
 
 // No remote origin, so a CDN compromise, a TLS intercept, or a pinned-range
 // mistake cannot run code in the same origin that holds window.studio.

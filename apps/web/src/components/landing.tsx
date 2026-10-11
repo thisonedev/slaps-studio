@@ -275,7 +275,9 @@ function SectionDivider() {
 function StudioStill() {
   const tile = `${POST} aspect-[16/10] !p-1.5 text-[8px] font-extrabold`;
   return (
-    <section id="studio" className="scroll-mt-24 space-y-6">
+    // Not id="studio": browsers expose element ids as window globals, and
+    // window.studio is how the app detects the desktop bridge.
+    <section id="studio-preview" className="scroll-mt-24 space-y-6">
       <SectionDivider />
       <div className="space-y-3">
         <p className="font-mono text-xs font-semibold uppercase tracking-widest text-primary">

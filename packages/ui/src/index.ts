@@ -1,4 +1,5 @@
 export { cn } from './lib/cn.js';
+export { isDesktopApp } from './lib/desktop.js';
 
 export { CopyButton } from './components/content/install-command.js';
 export { DesignStudioPage } from './components/design/studio/studio-page.js';
