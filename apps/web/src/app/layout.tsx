@@ -13,7 +13,7 @@ export const metadata = {
   title: PRODUCT_NAME,
   description: 'Social posts and threads from templates, in your own style. Runs on your machine.',
   icons: {
-    icon: [{ url: '/favicon.ico?v=2', type: 'image/x-icon', sizes: '32x32' }],
+    icon: [{ url: '/favicon.ico?v=3', type: 'image/x-icon', sizes: '32x32' }],
   },
   other: {
     google: 'notranslate',

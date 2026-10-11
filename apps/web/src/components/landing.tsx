@@ -2,7 +2,7 @@
 
 import { INSTALL_COMMANDS, PRODUCT_NAME, REPO_URL, X_URL } from '@studio/constants';
 import { CopyButton } from '@studio/ui';
-import { Github, Layers, type LucideIcon, Palette, Sparkles } from 'lucide-react';
+import { Github, InfinityIcon } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
 
 const INSTALL_TABS = [
@@ -10,37 +10,23 @@ const INSTALL_TABS = [
   { label: 'Windows', command: INSTALL_COMMANDS.windows },
 ];
 
-const HERO_FACTS = ['50+ templates', 'UI kits', 'Threads'];
-
 const STATS = [
-  { label: 'Templates', value: '50+', sub: 'Tailored for Web3 and AI' },
-  { label: 'On-device', value: '100%', sub: 'Nothing runs in the cloud' },
-  { label: 'Export formats', value: '4', sub: 'PNG, JPG, PDF and SVG' },
-  { label: 'API keys', value: '0', sub: 'Nothing to sign up for' },
-];
-
-interface FeatureItem {
-  icon: LucideIcon;
-  title: string;
-  body: string;
-}
-
-const FEATURES: FeatureItem[] = [
   {
-    icon: Layers,
-    title: 'Start from a template',
-    body: 'Announcements, milestones, partnerships, releases and threads. Pick one and change the words.',
+    label: 'Templates',
+    value: '60+',
+    sub: 'Premium quality pre-made posts made for busy builders, founders, and vibecoders.',
   },
   {
-    icon: Palette,
-    title: 'Your own style',
-    body: 'Switch a post to a built-in UI kit, or build a kit from your own colors and fonts.',
+    label: 'Post types',
+    value: <InfinityIcon aria-label="Unlimited" className="size-9" strokeWidth={2.5} />,
+    sub: 'Announcements, launches, partnerships, benchmarks, threads, and more.',
   },
   {
-    icon: Sparkles,
-    title: 'AI elements, painted locally',
-    body: 'Describe an object and an image model on your machine paints it, with the background cut away.',
+    label: 'On-device',
+    value: '100%',
+    sub: 'Nothing runs in the cloud. Your data always stays on your device.',
   },
+  { label: 'Price', value: '$0', sub: 'Free to use. No monthly subscriptions.' },
 ];
 
 const STUDIO_KITS = [
@@ -51,7 +37,7 @@ const STUDIO_KITS = [
 ];
 
 const DESIGN_FACTS = [
-  '50+ templates across the most used and requested post types, tailored for Web3 and AI industries.',
+  'Fresh templates across the most used and requested post types, tailored for Web3 and AI industries.',
   'Generous database of built-in UI kits, and the constructor to create your own.',
   'Single posts or multi-page threads, sized for X, Instagram, LinkedIn and stories.',
 ];
@@ -68,7 +54,6 @@ export function Landing() {
         </div>
         <StatsStrip />
         <StudioStill />
-        <FeatureCards />
         <InstallCta />
         <Copyright />
       </div>
@@ -84,22 +69,12 @@ function Hero() {
         The local design studio
       </p>
       <h1 className="max-w-4xl text-[clamp(32px,4.6vw,52px)] font-bold leading-[1.1] tracking-tight">
-        Posts and threads in your <span className="whitespace-nowrap">own style</span>
+        Create posts and vids <span className="whitespace-nowrap">that slap</span>
       </h1>
       <p className="max-w-2xl font-mono text-lead leading-[1.7] text-canvas-muted-foreground">
-        Pick a template, switch it to your brand, and export. A design studio that runs on your
-        machine, with no account and no cloud.
+        A modern, offline and free design studio that runs on your machine. Powered by Tether and
+        QVAC.
       </p>
-      <div className="flex flex-wrap gap-2">
-        {HERO_FACTS.map((fact) => (
-          <span
-            key={fact}
-            className="rounded-md border border-canvas-border bg-canvas-muted px-3 py-1.5 text-sm font-semibold text-canvas-foreground"
-          >
-            {fact}
-          </span>
-        ))}
-      </div>
       <section id="install" className="max-w-lg scroll-mt-24 space-y-3">
         <p className="font-mono text-xs font-semibold uppercase tracking-widest text-primary">
           Install via Terminal
@@ -280,15 +255,11 @@ function StudioStill() {
     <section id="studio-preview" className="scroll-mt-24 space-y-6">
       <SectionDivider />
       <div className="space-y-3">
-        <p className="font-mono text-xs font-semibold uppercase tracking-widest text-primary">
-          The studio
-        </p>
         <h2 className="text-[clamp(28px,4vw,42px)] font-bold leading-tight tracking-tight text-canvas-foreground">
-          Post about it
+          Ship it. Post about it
         </h2>
         <p className="max-w-2xl font-mono text-lead leading-[1.5] text-canvas-muted-foreground">
-          Pick a template, switch it to your style, and export. Announcements, partnerships,
-          threads, etc.
+          A launch nobody sees didn't happen. Make the post worth stopping for.
         </p>
       </div>
       <div className="overflow-hidden rounded-2xl border border-canvas-border bg-canvas-muted">
@@ -400,24 +371,6 @@ function StudioStill() {
   );
 }
 
-function FeatureCards() {
-  return (
-    <section className="grid grid-cols-1 divide-y divide-canvas-border md:grid-cols-3 md:divide-x md:divide-y-0">
-      {FEATURES.map(({ icon: Icon, title, body }) => (
-        <div key={title} className="flex h-full flex-col bg-canvas-muted p-6 sm:p-7">
-          <Icon className="size-3.5 text-primary" strokeWidth={2.5} aria-hidden />
-          <h3 className="mt-4 text-lg font-semibold leading-snug tracking-tight text-canvas-foreground sm:text-xl">
-            {title}
-          </h3>
-          <p className="mt-2.5 font-mono text-sm leading-relaxed text-canvas-muted-foreground">
-            {body}
-          </p>
-        </div>
-      ))}
-    </section>
-  );
-}
-
 function InstallCta() {
   return (
     <div className="rounded-2xl border border-canvas-border bg-canvas-muted p-6 sm:p-8">
@@ -430,7 +383,7 @@ function InstallCta() {
             Ready to design your next post?
           </h3>
           <p className="mt-2 max-w-xl font-mono text-sm leading-relaxed text-canvas-muted-foreground sm:text-base">
-            One install command. Runs offline. No accounts, no cloud.
+            One install command. Runs offline. Nothing in the cloud.
           </p>
         </div>
         <div className="w-full min-w-0 md:w-[400px]">
