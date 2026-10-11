@@ -1,6 +1,6 @@
 'use client';
 
-import { DesignStudioPage } from '@studio/ui';
+import { DesignStudioPage, isDesktopApp } from '@studio/ui';
 import { useLayoutEffect, useState } from 'react';
 import { Landing } from '@/components/landing';
 
@@ -9,7 +9,7 @@ export default function HomePage() {
   const [desktop, setDesktop] = useState(false);
   // Before the first paint. Until then global.css hides the landing page in the desktop app.
   useLayoutEffect(() => {
-    if ((window as { studio?: unknown }).studio) setDesktop(true);
+    if (isDesktopApp()) setDesktop(true);
   }, []);
   if (desktop) return <DesignStudioPage />;
   return (
