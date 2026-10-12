@@ -137,10 +137,25 @@ function readCast(scene: Scene, own: ICFilmCast): Cast {
   // The layer the template calls its headline, or failing that its largest words. The largest
   // alone can be a product's name set big, which is not what the design says.
   const named = (role: string) => texts.find((t) => t.e.t === 'text' && t.e.role === role);
-  const headline =
-    named('headline') ?? named('title') ?? [...texts].sort((a, b) => b.size - a.size)[0] ?? null;
+  const titled = named('headline') ?? named('title');
+  const headline = titled ?? [...texts].sort((a, b) => b.size - a.size)[0] ?? null;
   const he = headline?.e.t === 'text' ? headline.e : null;
   const hb = headline?.sprite.box;
+  // Words set a character a layer, such as a counter's digits, are read as the word they spell.
+  const spelled =
+    !titled && he?.groupId && hb
+      ? texts
+          .filter(
+            (t) =>
+              t.e.t === 'text' &&
+              t.e.groupId === he.groupId &&
+              t.e.size === he.size &&
+              Math.abs(t.sprite.box.y - hb.y) < hb.h / 2,
+          )
+          .sort((a, b) => a.sprite.box.x - b.sprite.box.x)
+          .map((t) => (t.e.t === 'text' ? t.e.text : ''))
+          .join('')
+      : '';
   const above = texts
     .filter(
       (t) =>
@@ -185,7 +200,7 @@ function readCast(scene: Scene, own: ICFilmCast): Cast {
   const label =
     own.label?.trim() || pill?.text || (badge?.t === 'pill' ? badge.text : '') || read || 'New';
   const cast: Cast = {
-    words: (own.headline?.trim() || he?.text || 'Hello').split(/\s+/).filter(Boolean),
+    words: (own.headline?.trim() || spelled || he?.text || 'Hello').split(/\s+/).filter(Boolean),
     face: he
       ? {
           family: IC_FONT_STACKS[he.font],

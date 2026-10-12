@@ -1,4 +1,4 @@
-// Announcement templates for the built-in Tether and QVAC kits: eleven layout families, each laid out
+// Announcement templates for the built-in Tether and QVAC kits: thirteen layout families, each laid out
 // by hand for X, square and story. One builder per family keeps layer order and slots the same across sizes.
 
 import { artDef, artPalette } from '../art/art.js';
@@ -15,7 +15,7 @@ import {
 import { type BrandKit, brandBackground } from '../brand/brand-kit.js';
 import { device } from '../art/device.js';
 import type { ICFont } from '../render/font-list.js';
-import { rows } from './groups.js';
+import { grouped, rows } from './groups.js';
 import type {
   ICArtEl,
   ICBackground,
@@ -326,6 +326,11 @@ interface ClassicBrand {
     numberEyebrow: string;
     number: string;
     numberLabel: string;
+    /** The number written out in full, for the counter and dot layouts. */
+    count: string;
+    countLabel: string;
+    /** What one of the hundred dots stands for. */
+    dotKey: string;
     recapEyebrow: string;
     /** X, square, story. */
     recapTitle: [string, string, string];
@@ -1281,13 +1286,15 @@ const D_BG = brandBackground(DEGEN_KIT);
 const Q_BG = brandBackground(QVAC_KIT);
 const P_BG = brandBackground(P2P_KIT);
 
-/** The six layouts every brand fills, in the order the Templates tab shows them. */
+/** The layouts every brand fills, in the order the Templates tab shows them. */
 const FAMILY_TITLES: Record<string, string> = {
   partner: 'Integration',
   launch: 'Product launch',
   contract: 'Official contract address',
   ama: 'Live AMA',
   milestone: 'Milestone',
+  counter: 'Milestone counter',
+  dots: 'Milestone dots',
   recap: 'Quarter recap',
   news: 'Breaking news',
   ecosystem: 'Ecosystem roundup',
@@ -1373,6 +1380,9 @@ const TETHER: ClassicBrand = {
     numberEyebrow: 'Milestone',
     number: '$1.2B',
     numberLabel: 'total value settled\nthis quarter',
+    count: '25,000',
+    countLabel: 'new wallets this month',
+    dotKey: '1 dot = 250 wallets',
     recapEyebrow: 'Quarter recap',
     recapTitle: ['What we\nshipped', 'What we shipped', 'What we\nshipped'],
     recapLines: [
@@ -1434,6 +1444,9 @@ const SAMPLE: ClassicBrand = {
     numberEyebrow: 'Milestone',
     number: '$1.2B',
     numberLabel: 'total value settled\non Your Brand',
+    count: '10,000',
+    countLabel: 'active users',
+    dotKey: '1 dot = 100 users',
     recapEyebrow: 'Q3 recap',
     recapTitle: ['What we\nshipped', 'What we shipped', 'What we\nshipped'],
     recapLines: [
@@ -1495,6 +1508,9 @@ const P2P: ClassicBrand = {
     numberEyebrow: 'Milestone',
     number: '10K',
     numberLabel: 'lessons finished\nthis month',
+    count: '500',
+    countLabel: 'lessons published',
+    dotKey: '1 dot = 5 lessons',
     recapEyebrow: 'This month',
     recapTitle: ['What we\nshipped', 'What we shipped', 'What we\nshipped'],
     recapLines: [
@@ -1934,6 +1950,8 @@ const CLASSIC_FAMILIES: [string, (c: ClassicBrand) => Family][] = [
   ['contract', classicContract],
   ['ama', classicAma],
   ['milestone', classicNumber],
+  ['counter', (c) => counter(classicCount(c))],
+  ['dots', (c) => dots(classicCount(c))],
   ['recap', classicRecap],
   ['news', (c) => news(c.logo, c.heading, newsLine(c.copy.noun), 'layers')],
   ['ecosystem', (c) => ecosystem(lookOf(c))],
@@ -1941,6 +1959,170 @@ const CLASSIC_FAMILIES: [string, (c: ClassicBrand) => Family][] = [
   ['api', (c) => api(lookOf(c))],
   ['app', (c) => appFeature(c.logo, c.heading, `${c.copy.noun}, now\nin the app`)],
 ];
+
+type TextLook = Partial<ICText> & { tone?: ICRole };
+
+/** What the counter and dot layouts take from a brand, so the classic brands and QVAC share them. */
+interface CountLook {
+  pad: (b: B) => { x: number; top: number };
+  /** The logo and the label on its line. */
+  top: (b: B) => ICElement[];
+  number: TextLook;
+  label: TextLook;
+  note: TextLook;
+  small: TextLook;
+  count: string;
+  countLabel: string;
+  tagline: string;
+  dotKey: string;
+}
+
+const classicCount = (c: ClassicBrand): CountLook => ({
+  pad: tPad,
+  top: (b) => {
+    const p = tPad(b);
+    const logo = b.pick(14, 24, 30);
+    const eb = b.pick(2.3, 3.3, 4);
+    return [
+      tWordmark(c, b, p.x, p.top, logo),
+      b.text(
+        'eyebrow',
+        100 - p.x - 30,
+        p.top + (logo / c.logo.ratio - eb) / 2,
+        30,
+        c.copy.numberEyebrow,
+        eb,
+        {
+          ...T_EYEBROW,
+          align: 'right',
+        },
+      ),
+    ];
+  },
+  number: { ...th(c), weight: 800 },
+  label: { weight: 600, track: -0.02 },
+  note: T_SUB,
+  small: T_EYEBROW,
+  count: c.copy.count,
+  countLabel: c.copy.countLabel,
+  tagline: 'And counting',
+  dotKey: c.copy.dotKey,
+});
+
+const QVAC_COUNT: CountLook = {
+  pad: qPad,
+  top: (b) => {
+    const p = qPad(b);
+    return [
+      qWordmark(b, p.x, p.top, qLogoW(b)),
+      qTopLabel(b, '[ MILESTONE ]', b.pick(2.1, 3.1, 3.8)),
+    ];
+  },
+  number: Q_HEAD,
+  label: { font: 'geist', weight: 500, track: -0.02 },
+  note: Q_SUB,
+  small: Q_LABEL,
+  count: '100,000',
+  countLabel: 'model downloads',
+  tagline: 'AND COUNTING',
+  dotKey: '1 DOT = 1,000 DOWNLOADS',
+};
+
+const COUNT_NOTE = 'Thank you to everyone who got us here.';
+
+/** A comma or point sits between tiles, this much of a tile wide. */
+const MARK = 0.3;
+const isMark = (ch: string) => ch === ',' || ch === '.';
+
+/** Each character of the count on its own tile, split across the middle like a flip counter. */
+const counter =
+  (look: CountLook): Family =>
+  (b) => {
+    const p = look.pad(b);
+    const full = 100 - p.x * 2;
+    const s = b.pick(
+      { y: 14.5, wide: 56, max: 11, gap: 1.1, label: 3.6, note: 2.1, small: 1.9, foot: 48 },
+      { y: 33, wide: full, max: 20, gap: 1.4, label: 5.6, note: 3, small: 2.6, foot: 89 },
+      { y: 68, wide: full, max: 20, gap: 1.6, label: 6.4, note: 3.6, small: 3, foot: 147 },
+    );
+    const chars = [...look.count];
+    const marks = chars.filter(isMark).length;
+    const tw = Math.min(
+      s.max,
+      (s.wide - s.gap * (chars.length - 1)) / (chars.length - marks + marks * MARK),
+    );
+    // A tile is 0.74 of the digit's size wide and 1.16 tall.
+    const size = tw / 0.74;
+    const th = size * 1.16;
+    let x = p.x;
+    const tiles = rows(chars, (ch, i) => {
+      const mark = isMark(ch);
+      const w = mark ? tw * MARK : tw;
+      const at = x;
+      x += w + s.gap;
+      // A mark's box runs into the gaps beside it, so a heavy comma is not shrunk to fit.
+      const [tx, tbox] = mark ? [at - tw * 0.2, tw * 0.7] : [at, w];
+      const digit = b.text(`digit_${i + 1}`, tx, s.y + (th - size) / 2, tbox, ch, size, {
+        ...look.number,
+        align: 'center',
+        lh: 1,
+        track: 0,
+        tone: mark ? 'muted' : 'accent',
+        role: 'digit',
+      });
+      if (mark) return [digit];
+      return [
+        b.rect(at, s.y, tw, th, 'card', { radius: tw * 0.19 }),
+        digit,
+        b.rect(at, s.y + th / 2 - 0.12, tw, 0.24, 'bg'),
+      ];
+    });
+    const labelY = s.y + th + s.gap * 3;
+    const dot = s.small * 0.7;
+    return [
+      ...look.top(b),
+      ...tiles,
+      b.text('label', p.x, labelY, full, look.countLabel, s.label, look.label),
+      b.text('note', p.x, labelY + s.label * 1.5, full, COUNT_NOTE, s.note, look.note),
+      ...grouped([
+        b.rect(p.x, s.foot + (s.small * 1.1 - dot) / 2, dot, dot, 'accent', { kind: 'ellipse' }),
+        b.text('tagline', p.x + dot * 1.8, s.foot, 50, look.tagline, s.small, look.small),
+      ]),
+    ];
+  };
+
+/** The count over a hundred dots that brighten toward the last one, with what one dot stands for. */
+const dots =
+  (look: CountLook): Family =>
+  (b) => {
+    const p = look.pad(b);
+    const s = b.pick(
+      { num: 11, numY: 18, w: 50, label: 3.4, key: 1.9, art: 36, ax: 100 - p.x - 36, ay: 13 },
+      {
+        num: 15,
+        numY: 20,
+        w: 100 - p.x * 2,
+        label: 5,
+        key: 2.3,
+        art: 42,
+        ax: 58 - p.x,
+        ay: 58 - p.x,
+      },
+      { num: 17, numY: 38, w: 100 - p.x * 2, label: 6, key: 3, art: 74, ax: p.x, ay: 70 },
+    );
+    const keyY = b.pick(s.ay + s.art - s.key * 1.1, s.ay + s.art - s.key * 1.1, s.ay + s.art + 3.5);
+    return [
+      ...look.top(b),
+      b.art('dot-field', s.ax, s.ay, s.art),
+      b.text('number', p.x, s.numY, s.w, look.count, s.num, {
+        ...look.number,
+        track: -0.04,
+        lh: 1,
+      }),
+      b.text('label', p.x, s.numY + s.num * 1.12, s.w, look.countLabel, s.label, look.label),
+      b.text('key', p.x, keyY, b.pick(45, 38, 80), look.dotKey, s.key, look.small),
+    ];
+  };
 
 const QVAC_LOOK: Look = {
   logo: { url: BRAND_LOGOS.qvacWordmark.url(), ratio: BRAND_LOGOS.qvacWordmark.ratio },
@@ -2047,8 +2229,9 @@ export const BRAND_GROUPS = (['Built-in', 'Clients'] as const).map((title) => ({
   brands: ANNOUNCE_BRANDS.filter((b) => b.group === title),
 }));
 
-/** Eleven families in each brand: Integration, Product launch, Official contract address, Live AMA,
- *  Milestone, Quarter recap, Breaking news, Ecosystem roundup, New trading pair, API launch and New in the app. */
+/** Thirteen families in each brand: Integration, Product launch, Official contract address, Live AMA,
+ *  Milestone, Milestone counter, Milestone dots, Quarter recap, Breaking news, Ecosystem roundup,
+ *  New trading pair, API launch and New in the app. */
 export const ANNOUNCE_PACK: ICTemplate[] = [
   ...classicPack('announcement', 'acme', SAMPLE, SAMPLE_KIT, A_BG),
   ...classicPack('tether', 'tether', TETHER, TETHER_KIT, T_BG),
@@ -2057,6 +2240,8 @@ export const ANNOUNCE_PACK: ICTemplate[] = [
   template('qvac', 'qvac', QVAC_KIT, Q_BG, 'checksum', 'contract', qvacChecksum),
   template('qvac', 'qvac', QVAC_KIT, Q_BG, 'office-hours', 'ama', qvacOfficeHours),
   template('qvac', 'qvac', QVAC_KIT, Q_BG, 'benchmark', 'milestone', qvacBenchmark),
+  template('qvac', 'qvac', QVAC_KIT, Q_BG, 'counter', 'counter', counter(QVAC_COUNT)),
+  template('qvac', 'qvac', QVAC_KIT, Q_BG, 'dots', 'dots', dots(QVAC_COUNT)),
   template('qvac', 'qvac', QVAC_KIT, Q_BG, 'changelog', 'recap', qvacChangelog),
   template(
     'qvac',

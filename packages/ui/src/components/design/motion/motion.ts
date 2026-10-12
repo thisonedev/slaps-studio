@@ -27,6 +27,8 @@ export interface Sprite {
   box: ICBox;
   /** Lines of text, when the layer is upright text. */
   rows: number;
+  /** A counter tile's digit at each number of its count, ending on its own. */
+  flips?: HTMLCanvasElement[];
   /** A chart, which draws itself on from the left whatever the style. */
   chart: boolean;
   /** A filled button, which can catch the light once the design has settled. */
@@ -221,6 +223,12 @@ function paintSprite(
   };
 }
 
+/** How many numbers a counter runs through before its own, and the seconds each takes: the fold,
+ *  then a short rest. */
+const FLIPS = 8;
+const FLIP_TICK = 0.26;
+const FLIP_FOLD = 0.2;
+
 /** Paints every layer once and works out the order they arrive in. */
 export function buildScene(layout: ICLayout, images: ICImages, width: number): Scene {
   const height = canvasHeight(layout, width);
@@ -268,6 +276,74 @@ export function buildScene(layout: ICLayout, images: ICImages, width: number): S
     } else units.set(key, { box, z, members: [track], holds });
   });
 
+  // A hairline across the middle of its group's words, such as the split in a counter's tile, is
+  // painted onto those words, so the two arrive as one piece.
+  const fused = new Set<Track>();
+  const stamp = (canvas: HTMLCanvasElement, at: Sprite, mark: Sprite) => {
+    const c = canvas.getContext('2d');
+    if (!c) return;
+    // A sprite's context is still shifted from when its own layer was painted.
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.drawImage(mark.canvas, mark.ox - at.ox, mark.oy - at.oy);
+  };
+  for (const u of units.values()) {
+    const split: [word: Track, mark: Track][] = [];
+    u.members.forEach((t, i) => {
+      const b = t.sprite.box;
+      if (t.e.t !== 'shape' || b.h > height * 0.01) return;
+      const cx = b.x + b.w / 2;
+      const cy = b.y + b.h / 2;
+      // The words right under the line's middle, not a neighbor whose box only reaches it.
+      const word = u.members
+        .slice(0, i)
+        .reverse()
+        .find((m) => {
+          const w = m.sprite.box;
+          return (
+            m.e.t === 'text' &&
+            cx > w.x &&
+            cx < w.x + w.w &&
+            cy > w.y + w.h * 0.25 &&
+            cy < w.y + w.h * 0.75
+          );
+        });
+      if (!word) return;
+      stamp(word.sprite.canvas, word.sprite, t.sprite);
+      split.push([word, t]);
+      fused.add(t);
+    });
+    u.members = u.members.filter((t) => !fused.has(t));
+    // Split tiles that spell a whole number count up to it, each tile flipping as its digit changes.
+    split.sort((a, b) => a[0].sprite.box.x - b[0].sprite.box.x);
+    const end = split.map(([w]) => (w.e.t === 'text' ? w.e.text : '')).join('');
+    if (!/^\d+$/.test(end)) continue;
+    const counts = Array.from({ length: FLIPS + 1 }, (_, i) =>
+      String(Math.max(0, Number(end) - FLIPS + i)).padStart(end.length, ' '),
+    );
+    split.forEach(([word, mark], col) => {
+      const { sprite, e } = word;
+      const faces = new Map([[end[col], sprite.canvas]]);
+      sprite.flips = counts.map((count) => {
+        const ch = count[col];
+        const known = faces.get(ch);
+        if (known) return known;
+        // A tile the number has not reached yet is empty but for its split.
+        const blank = document.createElement('canvas');
+        blank.width = sprite.canvas.width;
+        blank.height = sprite.canvas.height;
+        const digit =
+          ch !== ' ' && e.t === 'text'
+            ? paintSprite({ ...e, text: ch }, layout, images, width, height)
+            : null;
+        const face = digit?.canvas ?? blank;
+        stamp(face, sprite, mark.sprite);
+        faces.set(ch, face);
+        return face;
+      });
+    });
+  }
+  const shown = tracks.filter((t) => !fused.has(t));
+
   // Reading order: rows from the top, each row left to right.
   const list = [...units.values()].sort((a, b) => a.box.y - b.box.y || a.z - b.z);
   const rows = new Map<(typeof list)[number], number>();
@@ -305,12 +381,13 @@ export function buildScene(layout: ICLayout, images: ICImages, width: number): S
   }
   for (const u of list) {
     for (const t of u.members) {
-      t.start = starts.get(u) ?? 0;
+      // A counting tile waits for its tile to arrive.
+      t.start = (starts.get(u) ?? 0) + (t.sprite.flips ? 0.25 : 0);
       t.pivot = u.box;
     }
   }
   const cta =
-    tracks
+    shown
       .filter((t) => t.sprite.button && !t.stage)
       .sort((a, b) => area(b.sprite.box) - area(a.sprite.box))[0] ?? null;
   return {
@@ -318,7 +395,7 @@ export function buildScene(layout: ICLayout, images: ICImages, width: number): S
     height,
     base,
     glows: glassGlows(layout, width),
-    tracks,
+    tracks: shown,
     cta,
     roles: layout.kit?.roles,
     cast: layout.motion?.cast,
@@ -356,14 +433,17 @@ export interface Cue {
 export function cueOf(scene: Scene, preset: Preset, timing: Timing, track: Track): Cue {
   const { pace } = timing;
   const own = scene.motion.get(track.e.id);
-  const anim = own?.anim ?? (track.sprite.chart ? 'draw' : preset.id);
+  const { chart, flips } = track.sprite;
+  const anim = own?.anim ?? (chart ? 'draw' : flips ? 'flip' : preset.id);
   const base = (byId(anim) ?? preset).dur * pace;
   const dur =
     anim === 'draw'
       ? preset.dur * pace * 1.7
-      : anim === 'type'
-        ? base * 0.5 + track.sprite.rows * 0.45 * pace
-        : base;
+      : anim === 'flip' && flips
+        ? (flips.length - 1) * FLIP_TICK * pace
+        : anim === 'type'
+          ? base * 0.5 + track.sprite.rows * 0.45 * pace
+          : base;
   return { start: LEAD + track.start * pace, dur, anim };
 }
 
@@ -455,6 +535,12 @@ export function drawFrame(
     ctx.save();
     ctx.globalAlpha = alpha;
     ctx.translate(0, -leave * unit * 2);
+    if (cue.anim === 'flip' && sprite.flips && p < 1) {
+      ctx.globalAlpha = (1 - leave) * clamp(at / (0.12 * pace));
+      drawFlip(ctx, sprite, p);
+      ctx.restore();
+      continue;
+    }
     if (cue.anim === 'type' && sprite.rows && p < 1) {
       drawTyped(ctx, sprite, p, track.e.t === 'text' ? track.e.color : '#ffffff');
       ctx.restore();
@@ -634,6 +720,54 @@ function drawLines(
       bottom - top,
     );
     ctx.restore();
+  }
+}
+
+/** A split tile's digit between two numbers of its count: the old top half folds down to the
+ *  split, then the new bottom half unfolds from it. */
+function drawFlip(ctx: CanvasRenderingContext2D, sprite: Sprite, p: number): void {
+  const { ox, oy, box, flips = [] } = sprite;
+  const at = p * (flips.length - 1);
+  const k = Math.min(flips.length - 2, Math.floor(at));
+  const from = flips[k];
+  const to = flips[k + 1];
+  const q = from === to ? 1 : clamp(((at - k) * FLIP_TICK) / FLIP_FOLD);
+  const { width: w, height: h } = to;
+  const mid = box.y + box.h / 2 - oy;
+  const fold = Math.abs(Math.cos(q * Math.PI));
+  // A half standing still, less the strip next to the split that the flap is over.
+  const still = (face: HTMLCanvasElement, top: boolean, hidden: number) => {
+    ctx.save();
+    ctx.beginPath();
+    if (top) ctx.rect(ox, oy, w, mid - hidden);
+    else ctx.rect(ox, oy + mid + hidden, w, h - mid - hidden);
+    ctx.clip();
+    ctx.drawImage(face, ox, oy);
+    ctx.restore();
+  };
+  const flap = (face: HTMLCanvasElement, top: boolean) => {
+    const tall = top ? mid : h - mid;
+    if (tall * fold < 0.5) return;
+    ctx.drawImage(
+      face,
+      0,
+      top ? 0 : mid,
+      w,
+      tall,
+      ox,
+      top ? oy + mid - tall * fold : oy + mid,
+      w,
+      tall * fold,
+    );
+  };
+  if (q < 0.5) {
+    still(to, true, mid * fold);
+    still(from, false, 0);
+    flap(from, true);
+  } else {
+    still(to, true, 0);
+    still(from, false, (h - mid) * fold);
+    flap(to, false);
   }
 }
 
