@@ -75,6 +75,15 @@ function dotGrid(): string {
   }).join('');
 }
 
+/** A hundred dots that brighten toward the last one, which is ringed in the detail color. */
+function dotField(): string {
+  return Array.from({ length: 100 }, (_, i) => {
+    const at = `cx="${5 + (i % 10) * 10}" cy="${5 + Math.floor(i / 10) * 10}"`;
+    if (i === 99) return `<circle ${at} r="4.8" ${fd} opacity="0.3"/><circle ${at} r="3.6" ${fd}/>`;
+    return `<circle ${at} r="3.6" ${fm} opacity="${(0.3 + (0.7 * i) / 98).toFixed(2)}"/>`;
+  }).join('');
+}
+
 const HASH = '1011001110010111010110011';
 
 const BODIES: [string, string, ICArtGroup, string][] = [
@@ -661,6 +670,16 @@ export const WEB3_SHAPES: ICArtDef[] = [
     viewBox: '0 0 100 100',
     body: tokenStage(),
     slots: SLOTS,
+  },
+  {
+    id: 'dot-field',
+    name: 'Dot field',
+    kind: 'shape',
+    group: 'Accents',
+    ratio: 1,
+    viewBox: '0 0 100 100',
+    body: dotField(),
+    slots: [SLOTS[0], { key: 'detail', label: 'Last dot', role: 'ink', color: '#ffffff' }],
   },
   ...DEVICES,
   gridLines('grid-lines-wide', 'Grid lines, wide', 160, 90),
