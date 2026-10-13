@@ -3,7 +3,7 @@ import { motionOf, isFilm, motionStyle, videoPaint, designCast, videoSize } from
 import { loadFonts } from '../render/fonts.js';
 import { type ICVideoText, type ICSound, type ICLayout, type ICUpload, ratioHeight } from '../render/layout.js';
 import { type Scene, SHARP, buildScene, drawBlurred } from '../motion/motion.js';
-import { encodeMp4 } from '../render/mp4.js';
+import { encodeMp4, withCover } from '../render/mp4.js';
 import { loadImages } from '../render/render.js';
 import { NEW_SOUND, mixSound } from '../sound/sound.js';
 import { findTemplate } from '../templates/templates.js';
@@ -259,16 +259,22 @@ export async function composeStory(
   spare.height = height;
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('This browser cannot draw the video.');
-  return encodeMp4({
+  const job = {
     canvas,
     fps: opts.fps,
     seconds: built.length,
     audio,
-    draw: (t) => {
+    draw: (t: number) => {
       if (built.blur) drawBlurred(ctx, spare, built.frame(t), t, opts.fps);
       else built.frame(t)(ctx, t);
     },
     onProgress: opts.onProgress,
     signal: opts.signal,
-  });
+  };
+  return encodeMp4(
+    withCover(job, () => {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.drawImage(pages[0].design.still, 0, 0, width, height);
+    }),
+  );
 }
