@@ -23,6 +23,7 @@ import {
 import { PRODUCT_ART } from './art-product.js';
 import { ARROWS } from './arrows.js';
 import { codeDef, type ICCodeData, isCode, sampleCode } from './code.js';
+import { DIAGRAMS } from './diagrams.js';
 
 export interface ICArtSlot {
   key: string;
@@ -292,6 +293,7 @@ export const ART: ICArtDef[] = [
   ...SCREENS,
   ...PRODUCT_ART,
   codeDef(sampleCode()),
+  ...DIAGRAMS,
 ];
 
 const generated = new Map<string, ICArtDef | undefined>();
