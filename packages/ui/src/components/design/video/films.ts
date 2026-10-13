@@ -33,7 +33,7 @@ import {
   type Timing,
   type Track,
 } from '../motion/motion.js';
-import { encodeMp4 } from '../render/mp4.js';
+import { encodeMp4, withCover } from '../render/mp4.js';
 import { withAlpha } from '../brand/palettes.js';
 import { canvasHeight, type ICBox, loadImages } from '../render/render.js';
 import { asIntro, asText, keys, mixSound, NEW_SOUND, type Cue as Sound } from '../sound/sound.js';
@@ -1097,13 +1097,16 @@ export async function composeVideo(
     opts.sound === false
       ? null
       : await mixSound(videoCues(scene, m), seconds, m.sound ?? NEW_SOUND, 1);
-  return encodeMp4({
+  const job = {
     canvas,
     fps: opts.fps,
     seconds,
     audio,
-    draw: (t) => (m.blur === false ? cut(t)(ctx, t) : drawBlurred(ctx, spare, cut(t), t, opts.fps)),
+    draw: (t: number) =>
+      m.blur === false ? cut(t)(ctx, t) : drawBlurred(ctx, spare, cut(t), t, opts.fps),
     onProgress: opts.onProgress,
     signal: opts.signal,
-  });
+  };
+  // Every layer in place, whatever the style: the still design.
+  return encodeMp4(withCover(job, () => drawFrame(ctx, scene, PRESETS[0], 0, LAND, () => 'still')));
 }

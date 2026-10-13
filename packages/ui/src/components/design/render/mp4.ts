@@ -425,6 +425,55 @@ export interface VideoJob {
   signal?: AbortSignal;
 }
 
+// X took one post's thumbnail from 0.57 s into its video, before every layer was in place. A
+// saved video holds the finished design for its first second, then fades into its motion.
+const COVER = 1.3;
+const COVER_FADE = 0.3;
+
+/** The same sound, starting `seconds` later. */
+function delayed(audio: AudioBuffer, seconds: number): AudioBuffer {
+  const lead = Math.round(seconds * audio.sampleRate);
+  const late = new AudioBuffer({
+    length: audio.length + lead,
+    numberOfChannels: audio.numberOfChannels,
+    sampleRate: audio.sampleRate,
+  });
+  for (let c = 0; c < audio.numberOfChannels; c++)
+    late.copyToChannel(audio.getChannelData(c), c, lead);
+  return late;
+}
+
+/** The job with a cover ahead of it. `paint` puts the finished design on the job's canvas. */
+export function withCover(job: VideoJob, paint: () => void): VideoJob {
+  const { canvas } = job;
+  const ctx = canvas.getContext('2d');
+  const held = document.createElement('canvas');
+  held.width = canvas.width;
+  held.height = canvas.height;
+  const hctx = held.getContext('2d');
+  if (!ctx || !hctx) return job;
+  paint();
+  hctx.drawImage(canvas, 0, 0);
+  const place = (alpha: number) => {
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.filter = 'none';
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(held, 0, 0);
+    ctx.globalAlpha = 1;
+  };
+  return {
+    ...job,
+    seconds: job.seconds + COVER,
+    audio: job.audio ? delayed(job.audio, COVER) : job.audio,
+    draw(t) {
+      if (t >= COVER) return job.draw(t - COVER);
+      const fade = (t - (COVER - COVER_FADE)) / COVER_FADE;
+      if (fade > 0) job.draw(0);
+      place(Math.min(1, 1 - fade));
+    },
+  };
+}
+
 /** Draws and encodes every frame, then returns the finished MP4. Canvas sides must be even. */
 export async function encodeMp4(job: VideoJob): Promise<Blob> {
   const { canvas, fps } = job;

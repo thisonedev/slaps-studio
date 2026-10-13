@@ -12,6 +12,7 @@ export const WEB3_GROUPS = [
   'Charts',
   'Arrows',
   'Code',
+  'Diagrams',
 ] as const;
 export type ICArtGroup = (typeof WEB3_GROUPS)[number];
 

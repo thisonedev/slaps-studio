@@ -310,7 +310,8 @@ export function useAddLayers({
         return;
       }
       // Devices come in at about the height of the phone, so a laptop isn't a fraction of one. A
-      // code window or chart comes in wide enough to read, and a wide drawing wider than an icon.
+      // code window, chart or diagram comes in wide enough to read, and a wide drawing wider than an
+      // icon.
       const device = isScreen(id);
       const w = character
         ? 18
@@ -318,7 +319,7 @@ export function useAddLayers({
           ? Math.min(62, 44 * def.ratio)
           : def.group === 'Code'
             ? 60
-            : def.group === 'Charts'
+            : def.group === 'Charts' || def.group === 'Diagrams'
               ? 50
               : def.ratio >= 1.4
                 ? 36
